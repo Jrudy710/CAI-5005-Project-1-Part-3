@@ -1,0 +1,6 @@
+5 5
+B-G M-S M-E M-E S-E
+G-I G-E H-E H-E M-E
+M-E M-E G-C H-E S-E
+M-S G-S G-E S-E H-I
+M-E S-E H-E M-E B-G
