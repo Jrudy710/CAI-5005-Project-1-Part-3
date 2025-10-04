@@ -11,35 +11,41 @@
 # 10/3/2025 @ 2:48 PM - Added in the fun methods for trying to compute the available directions that the user is able to go for their turn.
     # Also tried to start the process for determining when to go a certain direction and when a person is able to pick up resources or
     # deposit resources at the base.
+# 10/4/2025 @ 10:31 AM - Added in a method to help with the easiness of computing what the coordinates of a user will be after the move is made. 
+    # Also added in the functions for the mini-max traversal. As far as I know the only thing that doesn't work correctly is for the heurisitic 
+    # to determine the values of the mini-max nodes.
 
-import sys
-from copy import deepcopy
 
-class Node:
+import sys                                                                                                          # Imports the sys libraries
+from copy import deepcopy                                                                                           # Imports the deepcopy method
+from random import choice                                                                                           # Imports the choice method from the random library
+
+
+
+class Node:                                                                                                         # Class BLock
     
-    def __init__(self, coordinate, base, baseCoor, pack):
-        self.__coordinate = coordinate
-        self.__baseCoor = baseCoor
-        self.__baseStats = deepcopy(base)
-        self.__backpack = deepcopy(pack)
-        
-    def getCoordinates(self):
-        return self.__coordinate
+    def __init__(self, coordinate, base, baseCoor, pack):                                                           # Initializer method
+        self.__coordinate = coordinate                                                                              # Sets the value of self.__coordinate
+        self.__baseCoor = baseCoor                                                                                  # Sets the value of self.__baseCoor
+        self.__baseStats = deepcopy(base)                                                                           # Sets the value of self.__baseStats
+        self.__backpack = deepcopy(pack)                                                                            # Sets the value of self.__backpack
+            
+    def getCoordinates(self):                                                                                       # GETTER METHOD
+        return self.__coordinate                                                                                    # Returns self.__coordinate
 
-    def getIndividualCoor(self):
-        return self.__coordinate[0], self.__coordinate[1]
+    def getIndividualCoor(self):                                                                                    # GETTER METHOD
+        return self.__coordinate[0], self.__coordinate[1]                                                           # Returns the x, y coordinates 
 
-    def getBaseCoor(self):
-        return self.__baseCoor
+    def getBaseCoor(self):                                                                                          # GETTER METHOD
+        return self.__baseCoor                                                                                      # Returns self.__baseCoor
     
-    def getBase(self):
-        return deepcopy(self.__baseStats)
+    def getBase(self):                                                                                              # GETTER METHOD
+        return deepcopy(self.__baseStats)                                                                           # Returns a copy of self.__baseStats
         
-    def getPack(self):
-        return deepcopy(self.__backpack)
+    def getPack(self):                                                                                              # GETTER METHOD
+        return deepcopy(self.__backpack)                                                                            # Returns a copy of self.__backpack
         
-        
-    def __str__(self):
+    def __str__(self):                                                                                              # Str method
         
         return f"At {self.__coordinate} with the following items in the pack: \n\t{self.__backpack}\n\tAt base {self.__baseCoor}: {self.__baseStats} \n"
     
@@ -122,6 +128,10 @@ def printList(table, playerA = None, playerB = None):
         
         print("\033[0m")                                                                                            # Prints a blank line to the user
     
+    if playerA != None:                                                                                             # Additional information about the players
+        
+        print(f"Player A\'s at coordinates {playerA.getCoordinates()}\n\tbase: {playerA.getBase()}\n\tbackpack: {playerA.getPack()}")
+        print(f"Player B\'s at coordinates {playerB.getCoordinates()}\n\tbase: {playerB.getBase()}\n\tbackpack: {playerB.getPack()}")
 
 
 # This is the method that will be used to return the euclidean heuristic value.
@@ -143,12 +153,12 @@ def manhattanHeuristic(currentState, terminalState):                            
 # This is the method that will be used to help with the playing of the game. 
 # It will be where the initial starting of the game will commence. 
 # It will also fill the values of the locations of the resources on the map.
-def playTheGame(graph, onePlayer = True):                                                                                             # Method Block
+def playTheGame(graph, onePlayer = True, randomState = False, minimax = True, alphaBeta = False):                   # Method Block
     
                                                                                                                     # VARIABLE DEFINITIONS
     turn = "A"                                                                                                      # Sets the value of turn
-    playerA = Node((0, 0), (0, 0), list(), list())                                                                  # Creates the default position for playerA
-    playerB = Node((len(graph) - 1, len(graph[0]) - 1), (len(graph) - 1, len(graph[0]) - 1), list(), list())        # Creates the default position for playerB
+    playerA = Node((0, 0), list(), (0, 0), list())                                                                  # Creates the default position for playerA
+    playerB = Node((len(graph) - 1, len(graph[0]) - 1), list(), (len(graph) - 1, len(graph[0]) - 1), list())        # Creates the default position for playerB
     
     resourceCoordinates = []                                                                                        # Defines resourceCoordinates
     nextMove = []
@@ -160,7 +170,7 @@ def playTheGame(graph, onePlayer = True):                                       
                 resourceCoordinates.append((i, j))                                                                  # Appends to resourceCoordinates
                 
                 
-    openingMove = (playerA, playerB, resourceCoordinates, turn)                                                     # Defines openingMove
+    openingMove = (playerA, playerB, deepcopy(resourceCoordinates), turn)                                                     # Defines openingMove
     nextMove.append(openingMove)                                                                                    # Appends the openingMove to the list
                 
     while not gameOver(playerA, playerB, resourceCoordinates):                                                      # As long as the coordinates are not all delivered 
@@ -190,12 +200,28 @@ def playTheGame(graph, onePlayer = True):                                       
                 userInput = input(f"From the options: {directions}, please choose again. ").upper()                 # Taking input from the user    
         
         else:
+            
             # For now this is for when the agent has been created. 
             # The random state agent will be a greedy algorithm
+            # As of right now it will be a completely random movement agent
+            if randomState:                                                                                         # We are doing the randomState machine for the baseline
+                LCV = 0                                                                                             # Sets the value of LCV
             
-            pass
+                directions = ['N', 'S', 'E', 'W']                                                                   # Sets the value of directions
+                
+                while LCV < len(directions):                                                                        # While Loop
+                    
+                    if not availableDirection(graph, playerB.getCoordinates()[0], playerB.getCoordinates()[1], directions[LCV], playerA):
+                        directions.pop(LCV)                                                                         # Removes the direction from the list
+                    else:                                                                                           # We can go this direction
+                        LCV += 1                                                                                    # Adds to the value of LCV
+                
+                userInput = choice(directions)                                                                      # Sets the value of userInput
             
-            
+            elif minimax:
+                
+                userInput = maxValue(playerA, playerB, deepcopy(resourceCoordinates), resourceCoordinates, whoseTurn, 0, graph)
+                print("Hello!!!!!", userInput)
             #break
         
         
@@ -203,43 +229,53 @@ def playTheGame(graph, onePlayer = True):                                       
         if whoseTurn == "A":                                                                                        # It's player A who is moving
             
             x, y = playerA.getIndividualCoor()                                                                      # Sets the value of x and y
+            x, y = updatedCoordinates(x, y, userInput)                                                              # Call to method updatedCoordinates
             
-            match userInput:                                                                                        # Match case
-                
-                case "E":                                                                                           # In the case of East
-                    y += 1                                                                                          # Adds to the value of y
-
-                case "S":                                                                                           # In the case of South
-                    x += 1                                                                                          # Adds to the value of x
-                
-                case "W":                                                                                           # In the case of West
-                    y -= 1                                                                                          # Subtracts from the value of y
-                    
-                case "N":                                                                                           # In the case of North
-                    x -=1                                                                                           # Subtracts from the value of x
-                
+            newPack = playerA.getPack()                                                                             # Copies the information into the newPack
+            newBase = playerA.getBase()                                                                             # Copies the information into newBase            
+            
             if (x, y) in resources and len(playerA.getPack()) < 2:                                                  # We found a resource and have space to claim it
-                newPack = playerA.getPack()                                                                         # Copies the information into the newPack
-                newBase = playerA.getBase()                                                                         # Copies the information into newBase
-                newPack.append(graph[x][y][-1])                                                                     # Appends to the newPack
                 
+                newPack.append(graph[x][y][-1])                                                                     # Appends to the newPack
+                resources.remove((x, y))                                                                            # Removes the tuple from resources                
+                    
                 graph[x][y] = graph[x][y][:-1] + "E"                                                                # Picks up the resource
             
             elif (x, y) == playerA.getBaseCoor():                                                                   # We arrived back at the base
                 
-                newPack = playerA.getPack()                                                                         # Copies the information into the newPack
-                newBase = playerA.getBase()                                                                         # Copies the information into newBase
-                
                 newBase += newPack                                                                                  # Adds the contents of the pack to the base
                 newPack = list()                                                                                    # Creates an empty list for the pack
-                
             
             
+            newPlayerA = Node((x, y), newBase, playerA.getBaseCoor(), newPack)                                      # Creates an object of the Node classd
+            nextMove.append((newPlayerA, playerB, resources, "B"))                                                    # Appends to the list                        
             
             
         else:
             
-            break
+            x, y = playerB.getIndividualCoor()                                                                      # Sets the value of x and y
+            
+            x, y = updatedCoordinates(x, y, userInput)                                                              # Call to method updatedCoordinates
+            
+            newPack = playerB.getPack()                                                                             # Copies the information into the newPack
+            newBase = playerB.getBase()                                                                             # Copies the information into newBase            
+            
+            if (x, y) in resources and len(playerB.getPack()) < 2:                                                  # We found a resource and have space to claim it
+                
+                newPack.append(graph[x][y][-1])                                                                     # Appends to the newPack
+                resources.remove((x, y))                                                                            # Removes the tuple from resources                
+                    
+                graph[x][y] = graph[x][y][:-1] + "E"                                                                # Picks up the resource
+            
+            elif (x, y) == playerB.getBaseCoor():                                                                   # We arrived back at the base
+                
+                newBase += newPack                                                                                  # Adds the contents of the pack to the base
+                newPack = list()                                                                                    # Creates an empty list for the pack
+            
+            
+            newPlayerB = Node((x, y), newBase, playerB.getBaseCoor(), newPack)                                      # Creates an object of the Node classd
+            nextMove.append((playerA, newPlayerB, resources, "A"))                                                  # Appends to the list                        
+            
         
                 
                 #playerA, playerB, resources, whoseTurn = nextMove.pop()                                                     # Pops the information from the list
@@ -248,31 +284,25 @@ def playTheGame(graph, onePlayer = True):                                       
         # if we are doing a game with the computer making the turn we want to have
             # either the random state, minimax, alpha beta pruning agent
         # compute which direction to go and then take that action.
+    else:
         
+        if len(playerA.getBase()) > len(playerB.getBase()):                                                         # Player A collected the most amount of resources
+            print("Player A wins!")                                                                                 # Prints out to the user
+            
+        elif len(playerA.getBase()) < len(playerB.getBase()):                                                       # Player B collected the most amount of resources
+            print("Player B Wins")                                                                                  # Prints out to the user
         
+        else:                                                                                                       # Both players collected the same amount of resources
+            print("It\'s a Tie")                                                                                    # Prints out to the user
         
         
         
 # This is the method that will be used to determine whether or not the user can go in a specific direction
-def availableDirection(graph, xCoor, yCoor, direction, playerB):                                                             # Method Block
-     
-    match direction:                                                                                                # Match case
-        
-        case "E":                                                                                                   # In the case of East
-            yCoor += 1                                                                                              # Adds to the value of 
-
-        case "S":                                                                                                   # In the case of South
-            xCoor += 1                                                                                              # Adds to the value of xCoor
-        
-        case "W":                                                                                                   # In the case of West
-            yCoor -= 1                                                                                              # Subtracts from the value of yCoor
-            
-        case "N":                                                                                                   # In the case of North
-            xCoor -=1                                                                                               # Subtracts from the value of xCoor
-            
-        case _:                                                                                                     # Default case
-            raise Exception("Unknown direction entered")                                                            # Raises the error to the user
+def availableDirection(graph, xCoor, yCoor, direction, playerB):                                                    # Method Block
     
+    
+    
+    xCoor, yCoor = updatedCoordinates(xCoor, yCoor, direction)                                                      # Call to method updatedCoordinates
     
     if xCoor < 0 or xCoor >= len(graph):                                                                            # If the x-coordinate is beyond the bounds of the graph
         return False                                                                                                # Returns false to the user
@@ -291,6 +321,211 @@ def availableDirection(graph, xCoor, yCoor, direction, playerB):                
 def gameOver(playerA, playerB, resourceCoordinates):                                                                # Method BLock
     
     return len(playerA.getBase()) + len(playerB.getBase()) == len(resourceCoordinates)                              # Returns the bool value to the user
+
+
+
+# This is a helper method that will just assist in the computation of the new coordinate that the player will be moving to.
+# It will take in the x and y coordinates, along with the direction and will return the updated x and y values to the user.
+def updatedCoordinates(xCoor, yCoor, stepTaken):                                                                    # Method Block
+    
+    match stepTaken:                                                                                                # Match case
+        
+        case "E":                                                                                                   # In the case of East
+            yCoor += 1                                                                                              # Adds to the value of 
+
+        case "S":                                                                                                   # In the case of South
+            xCoor += 1                                                                                              # Adds to the value of xCoor
+        
+        case "W":                                                                                                   # In the case of West
+            yCoor -= 1                                                                                              # Subtracts from the value of yCoor
+            
+        case "N":                                                                                                   # In the case of North
+            xCoor -=1                                                                                               # Subtracts from the value of xCoor
+            
+        case _:                                                                                                     # Default case
+            raise Exception("Unknown direction entered")                                                            # Raises the error to the user
+    
+    
+    return xCoor, yCoor                                                                                             # Returns the updated values to the user
+    
+    
+
+# This is the method that will be used to help with determining the value of minimax. This will be the max function of the mini-max algorithm.
+def maxValue(playerA, playerB, availableResources, resourceCoordinates, whoseTurn, depth, graph):                   # Method Block
+    
+    # For now the heuristic function will be the backpack + base resources - (opponents backpack + resources)
+    if gameOver(playerA, playerB, resourceCoordinates) or depth == 3:                                               # If statement
+        return len(playerA.getBase()) + len(playerA.getPack()) - len(playerB.getBase()) + len(playerB.getPack())    # Returns the value to the user
+    
+    maxVal = float("-inf")                                                                                          # Sets the value of maxVal
+    direction = ""                                                                                                  # Sets the value of direction
+    
+    newGraph = deepcopy(graph)                                                                                      # Copies the contents into a new graph
+    
+    possibleSteps = ["N", "E", "S", "W"]                                                                            # Sets the value of possibleSteps
+    
+    for step in possibleSteps:                                                                                      # For each of the successors
+        
+                                                                                                                    #  It's player A's turn
+        print(f"{depth}: ", end = "")
+        print("\t" * depth, end = "")
+        print(f"Going {step}")
+        
+        if whoseTurn == "A" and availableDirection(newGraph, playerA.getCoordinates()[0], playerA.getCoordinates()[1], step, playerB):
+            
+            x, y = playerA.getIndividualCoor()                                                                      # Sets the value of x and y
+            
+            x, y = updatedCoordinates(x, y, step)                                                                   # Call to method updatedCoordinates
+            
+            newPack = playerA.getPack()                                                                             # Copies the information into the newPack
+            newBase = playerA.getBase()                                                                             # Copies the information into newBase            
+            
+            if (x, y) in availableResources and len(playerA.getPack()) < 2:                                         # We found a resource and have space to claim it
+                
+                newPack.append(newGraph[x][y][-1])                                                                  # Appends to the newPack
+                availableResources.remove((x, y))                                                                   # Removes the tuple from resources                
+                    
+                newGraph[x][y] = newGraph[x][y][:-1] + "E"                                                          # Picks up the resource
+            
+            elif (x, y) == playerA.getBaseCoor():                                                                   # We arrived back at the base
+                
+                newBase += newPack                                                                                  # Adds the contents of the pack to the base
+                newPack = list()                                                                                    # Creates an empty list for the pack
+            
+            
+            newPlayerA = Node((x, y), newBase, playerA.getBaseCoor(), newPack)                                      # Creates an object of the Node classd
+            
+            tempVal = minValue(newPlayerA, playerB, availableResources, resourceCoordinates, "B", depth + 1, newGraph)
+            
+           
+            if maxVal < tempVal:
+                maxVal = tempVal
+                direction = step
+                
+                 
+            
+        elif whoseTurn == "B" and availableDirection(newGraph, playerB.getCoordinates()[0], playerB.getCoordinates()[1], step, playerA):                                                                                                       # It's player B's turn
+            
+            x, y = playerB.getIndividualCoor()                                                                      # Sets the value of x and y
+            
+            x, y = updatedCoordinates(x, y, step)                                                                   # Call to method updatedCoordinates
+            
+            newPack = playerB.getPack()                                                                             # Copies the information into the newPack
+            newBase = playerB.getBase()                                                                             # Copies the information into newBase            
+            
+            if (x, y) in availableResources and len(playerB.getPack()) < 2:                                         # We found a resource and have space to claim it
+                
+                newPack.append(newGraph[x][y][-1])                                                                  # Appends to the newPack
+                
+                availableResources.remove((x, y))                                                                   # Removes the tuple from resources                
+                    
+                newGraph[x][y] = newGraph[x][y][:-1] + "E"                                                          # Picks up the resource
+                
+            elif (x, y) == playerB.getBaseCoor():                                                                   # We arrived back at the base
+                
+                newBase += newPack                                                                                  # Adds the contents of the pack to the base
+                newPack = list()                                                                                    # Creates an empty list for the pack
+            
+            
+            newPlayerB = Node((x, y), newBase, playerB.getBaseCoor(), newPack)                                      # Creates an object of the Node classd
+            
+            tempVal = minValue(playerA, newPlayerB, availableResources, resourceCoordinates, "A", depth + 1, newGraph)
+            
+            if maxVal < tempVal:
+                maxVal = tempVal
+                direction = step
+    
+    return direction if depth == 0 else maxVal                                                                      # Returns the value to the user
+    
+
+
+
+
+
+# This is the method that will be used to help with determining the value of minimax. This will be the min function of the mini-max algorithm.
+def minValue(playerA, playerB, availableResources, resourceCoordinates, whoseTurn, depth, graph):                   # Method Block 
+    # For now the heuristic function will be the backpack + base resources - (opponents backpack + resources)
+    if gameOver(playerA, playerB, resourceCoordinates) or depth == 3:                                               # If statement
+        return len(playerA.getBase()) + len(playerA.getPack()) - len(playerB.getBase()) + len(playerB.getPack())    # Returns the value to the user
+    
+    minVal = float("inf")                                                                                           # Sets the value of minVal
+    direction = ""                                                                                                  # Sets the value of direction
+    
+    newGraph = deepcopy(graph)                                                                                      # Copies the contents into a new graph
+    
+    possibleSteps = ["N", "E", "S", "W"]                                                                            # Sets the value of possibleSteps
+    
+    for step in possibleSteps:                                                                                      # For each of the successors
+        
+                                                                                                                    #  It's player A's turn
+        print(f"{depth}: ", end = "")
+        print("\t" * depth, end = "")
+        print(f"Going {step}")
+        
+        if whoseTurn == "A" and availableDirection(newGraph, playerA.getCoordinates()[0], playerA.getCoordinates()[1], step, playerB):
+            
+            x, y = playerA.getIndividualCoor()                                                                      # Sets the value of x and y
+            x, y = updatedCoordinates(x, y, step)                                                                   # Call to method updatedCoordinates
+            
+            newPack = playerA.getPack()                                                                             # Copies the information into the newPack
+            newBase = playerA.getBase()                                                                             # Copies the information into newBase            
+            
+            if (x, y) in availableResources and len(playerA.getPack()) < 2:                                         # We found a resource and have space to claim it
+                
+                newPack.append(newGraph[x][y][-1])                                                                  # Appends to the newPack
+                availableResources.remove((x, y))                                                                   # Removes the tuple from resources                
+                    
+                newGraph[x][y] = newGraph[x][y][:-1] + "E"                                                          # Picks up the resource
+            
+            elif (x, y) == playerA.getBaseCoor():                                                                   # We arrived back at the base
+                
+                newBase += newPack                                                                                  # Adds the contents of the pack to the base
+                newPack = list()                                                                                    # Creates an empty list for the pack
+            
+            
+            newPlayerA = Node((x, y), newBase, playerA.getBaseCoor(), newPack)                                      # Creates an object of the Node classd
+            
+            tempVal = maxValue(newPlayerA, playerB, availableResources, resourceCoordinates, "B", depth + 1, newGraph)
+            
+            
+            if minVal > tempVal:
+                minVal = tempVal
+                direction = step
+                print("What")
+                
+            
+        elif whoseTurn == "B" and availableDirection(newGraph, playerB.getCoordinates()[0], playerB.getCoordinates()[1], step, playerA):                                                                                                       # It's player B's turn
+        
+            x, y = playerB.getIndividualCoor()                                                                      # Sets the value of x and y
+            
+            x, y = updatedCoordinates(x, y, step)                                                                   # Call to method updatedCoordinates
+            
+            newPack = playerB.getPack()                                                                             # Copies the information into the newPack
+            newBase = playerB.getBase()                                                                             # Copies the information into newBase            
+            
+            if (x, y) in availableResources and len(playerB.getPack()) < 2:                                         # We found a resource and have space to claim it
+                
+                newPack.append(newGraph[x][y][-1])                                                                  # Appends to the newPack
+                availableResources.remove((x, y))                                                                   # Removes the tuple from resources                
+                    
+                newGraph[x][y] = newGraph[x][y][:-1] + "E"                                                          # Picks up the resource
+            
+            elif (x, y) == playerB.getBaseCoor():                                                                   # We arrived back at the base
+                
+                newBase += newPack                                                                                  # Adds the contents of the pack to the base
+                newPack = list()                                                                                    # Creates an empty list for the pack
+            
+            
+            newPlayerB = Node((x, y), newBase, playerB.getBaseCoor(), newPack)                                      # Creates an object of the Node classd
+            
+            tempVal = maxValue(playerA, newPlayerB, availableResources, resourceCoordinates, "A", depth + 1, newGraph)
+            
+            if minVal > tempVal:
+                minVal = tempVal
+                direction = step
+            
+    
+    return direction if depth == 0 else minVal                                                                      # Returns the value to the user
 
 
 
